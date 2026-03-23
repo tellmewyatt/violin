@@ -26,16 +26,6 @@ s.boot;
 			sig * amp
 		);
 	}).add;
-	SynthDef(\kalimba, { | freq = 200, modIndex = 10, cmRatio=2.31, pan=0, out=0, releaseTime=2, amp=0.2 |
-		var env = EnvGen.kr(Env.perc(0, releaseTime), doneAction: 2);
-		var sig;
-		modIndex = EnvGen.kr(Env.perc(0,releaseTime), 1, modIndex);
-		sig = Pan2.ar(SinOsc.ar(freq + SinOsc.ar(cmRatio * freq, 0.2, modIndex * cmRatio * freq), 0.5pi, 0.5) * env, pan);
-		sig = FreeVerb2.ar(sig[0], sig[1], 0.7);
-		Out.ar(out,
-			sig * amp
-		);
-	}).add;
 	SynthDef(\mysteriousPad, { | out=0, freq = 900, amp =0.1, pan=0, gate=1, freqSpreadSemitones=0.3, release=5, ampMod=1.0, ampModMul=1, bpfRQAdd = 0, attack=2 |
 		var env, sig, filterEnv, diminuendoEnv;
 		ampMod = (ampMod * ampModMul).max(0).min(1);
@@ -73,11 +63,12 @@ s.boot;
 		attack=2,
 		tremoloRateMul=20,
 		reverbMix=0.5,
-		roomSize=0.5
+		roomSize=0.5,
+		curve= -4
 		|
 		var env, sig, filterEnv, diminuendoEnv;
 		ampMod = (ampMod * ampModMul).max(0).min(1);
-		env = EnvGen.kr(Env.adsr(attack, attack, 1, release), gate, doneAction: 2);
+		env = EnvGen.kr(Env.adsr(attack, attack, 1, release, 1, curve), gate, doneAction: 2);
 		sig = Splay.ar(20.collect { | i |
 			var lfo = SinOsc.ar(Rand(0.1, 1), 0, 1);
 			var spread = (lfo * Rand(freqSpreadSemitones.neg, freqSpreadSemitones)).midiratio;
@@ -119,6 +110,12 @@ s.boot;
 		var modEnv = EnvGen.kr(Env([0, 1, 0], [0.2, 0.1]), gate);
 		var sig = bounceEnv * SinOsc.ar(freq + SinOsc.ar(freq * 2, 0, modEnv * (freq * 10), freq)) * 0.2 * env;
 		Out.ar(out, Pan2.ar(sig, pan, amp));
+	}).add;
+	SynthDef(\bassDrum, { | freq = 40, amp = 1, out=0, release=1, attack=0.001 |
+		var sig = SplayAz.ar(
+			s.options.numOutputBusChannels,
+			SinOsc.ar(Rand(1, 4! 20) * freq, 0.5*pi) * amp * EnvGen.kr(Env.perc(attack, release), 1, doneAction: 2) * 0.3);
+		Out.ar(out, sig);
 	}).add;
 };
 ~createSeq = {
@@ -281,18 +278,72 @@ s.boot;
 		},
 		15: {
 			r {
-				var notes = [35, 47, 58, 61, 63, 65, 72];
-				var bass = Synth(\bouncyBass, [\freq, notes[0].midicps, \amp, 0.5, \pan, 0.5]);
+				var releaseTime = 0;
+				var commonArgs = [\amp, 0.5, \pan, rrand(-1.0, 1), \tremoloRateMul, 0.5, \bpfRQAdd, 4, \release, releaseTime, \curve, 1];
+				var chords = [
+					[37, 49, 58, 61, 63, 65, 72],
+					[39, 51, 58, 60, 63, 65, 70],
+					[41, 53, 56, 60, 63, 67, 70],
+					[43, 55, 56, 60, 63, 67, 70],
+				];
+				// m. 27
+				~basses = [Synth(\bouncyBass, [\freq, chords[0][0].midicps, \amp, 0.5, \pan, 0.5]), Synth(\bouncyBass, [\freq, chords[0][0].midicps / 2, \amp, 1, \pan, 0])];
 				Synth(\noiseFall, [\direction, -1]);
-				notes.midicps.collect { | freq |
+				~padSynths = chords[0].midicps.collect { | freq |
 					Synth(\sinFmHit, [\freq, freq, \cmRatio, 2, \releaseTime, 5, \amp, 0.05, \modIndex, 10, \pan, rrand(-1.0,1)]);
-					Synth(\mysteriousTremolo, [\freq, freq, \amp, 0.5, \pan, rrand(-1.0, 1), \tremoloRateMul, 0.5, \bpfRQAdd, 4])
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
 				};
 				0.5.wait;
+				~basses.collect { | synth | synth.release };
+				1.5.wait;
+				~padSynths.collect { | s | s.release };
+				~padSynths = chords[1].midicps.collect { | freq |
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
+				};
+				2.wait;
+				~padSynths.collect { | s | s.release };
+				~padSynths = chords[2].midicps.collect { | freq |
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
+				};
+				2.wait;
+				~padSynths.collect { | s | s.release };
+				~padSynths = chords[3].midicps.collect { | freq |
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
+				};
+				4.wait;
+				// m. 29.5
+				~padSynths.collect { | s | s.release };
+				~padSynths = chords[0].midicps.collect { | freq |
+					Synth(\sinFmHit, [\freq, freq, \cmRatio, 2, \releaseTime, 5, \amp, 0.05, \modIndex, 10, \pan, rrand(-1.0,1)]);
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
+				};
 
-				bass.release;
+				2.wait;
+				~padSynths.collect { | s | s.release };
+				~basses = [Synth(\bouncyBass, [\freq, chords[1][0].midicps, \amp, 0.5, \pan, 0.5])];
+				~padSynths = chords[1].midicps.collect { | freq |
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
+				};
+				0.5.wait;
+				~basses.collect { | synth | synth.release };
+				1.5.wait;
+				~padSynths.collect { | s | s.release };
+				~padSynths = chords[2].midicps.collect { | freq |
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
+				};
+				2.wait;
+				~padSynths.collect { | s | s.release };
+				~padSynths = chords[3].midicps.collect { | freq |
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
+				};
+				2.wait;
+				// m. 31.5
+				~padSynths.collect { | s | s.release };
+				Synth(\bassDrum, [\freq, 30, \attack, 0.02, \release, 2])
+
+
 			}.play;
-		}
+		},
 	)
 };
 s.waitForBoot {
@@ -306,7 +357,9 @@ s.waitForBoot {
 Synth(\noiseFall)
 ~createSeq.();
 ~seq
-~seq[14].();
 ~seq[15].();
+~seq[16].();
 x = Synth(\mysteriousTremolo, [\tremoloRateMul, 100])
 x.set(\tremoloRateMul, 300);
+x = [1,2]
+y = [1, ... x]
