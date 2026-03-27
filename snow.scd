@@ -56,12 +56,13 @@ s.reboot;
 	SynthDef(\snow, { | bufnum, amp=0.05, out=0, ringDecayTime=0.1, freq=400, freqLagTime=1, bwr=1, resonzAmp = 4, resonzAmpLagTime = 4, gate=1, attack=0.1, release=5 |
 		var env = EnvGen.kr(Env.asr(attack, 1, release), gate, doneAction: 2);
 		var trigger = Impulse.kr(2);
-		var sig = GrainBuf.ar(2, trigger, 2, bufnum, BufRateScale.kr(bufnum), TRand.ar(0, 1, trigger), 2, TRand.ar(-0.5, 0.5, trigger));
-		sig = sig * env;
+		var sig = GrainBuf.ar(s.options.numOutputBusChannels, trigger, 2, bufnum, BufRateScale.kr(bufnum), TRand.ar(0, 1, trigger), 2, TRand.ar(-0.5, 0.5, trigger));
 		ringDecayTime = ringDecayTime.max(0.00001).min(5);
+		sig = Resonz.ar(sig, freq.lag(0.2), bwr) *  resonzAmp.lag(resonzAmpLagTime) + (sig * amp);
+		sig = sig * env;
 		Out.ar(
 			out,
-			Resonz.ar(sig, freq.lag(0.2), bwr) *  resonzAmp.lag(resonzAmpLagTime) + (sig * amp)
+			sig
 		);
 	}).add;
 	SynthDef(\sinFmHit, { | freq = 200, modIndex = 10, cmRatio=2.31, pan=0, out=0, release=2, attack=0, amp=0.1 |
@@ -125,7 +126,7 @@ s.reboot;
 		var env, sig, filterEnv, diminuendoEnv;
 		ampMod = (ampMod * ampModMul).max(0).min(1);
 		env = EnvGen.kr(Env.adsr(attack, attack, 1, release, 1, curve), gate, doneAction: 2);
-		sig = Splay.ar(20.collect { | i |
+		sig = SplayAz.ar(20.collect { | i |
 			var lfo = SinOsc.ar(Rand(0.1, 1), 0, 1);
 			var spread = (lfo * Rand(freqSpreadSemitones.neg, freqSpreadSemitones)).midiratio;
 			var trem = LFPulse.ar(Rand(1, 2) * tremoloRateMul, Rand(0, 1));
@@ -541,6 +542,6 @@ s.waitForBoot {
 }
 )
 Synth(\score)
-~seq[0].();
+~seq[14].();
 ~padSynths.collect { | s | s.release }
 ~seq[16].();
