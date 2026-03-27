@@ -1,9 +1,12 @@
 (
+
+s.options.memSize = 8192 * 40;
 s.boot;
 ~loadSynthsAndSamples = {
 	~samples = (
 		snow: Buffer.readChannel(s, "snow.flac".resolveRelative, channels: [0]),
-		violinScore: Buffer.readChannel(s, "Violin I-Violin.flac".resolveRelative)
+		violinScore: Buffer.readChannel(s, "Violin I.flac".resolveRelative),
+		pizzes: Buffer.readChannel(s, "pizzes.flac".resolveRelative, channels: [0])
 	);
 	SynthDef(\snow, { | bufnum, amp=0.1, out=0, ringDecayTime=0.1, freq=400, freqLagTime=1, bwr=1, resonzAmp = 4, resonzAmpLagTime = 4, gate=1, attack=0.1, release=5 |
 		var env = EnvGen.kr(Env.asr(attack, 1, release), gate, doneAction: 2);
@@ -16,12 +19,20 @@ s.boot;
 			Resonz.ar(sig, freq.lag(0.2), bwr) *  resonzAmp.lag(resonzAmpLagTime) + (sig * amp)
 		);
 	}).add;
-	SynthDef(\sinFmHit, { | freq = 200, modIndex = 10, cmRatio=2.31, pan=0, out=0, releaseTime=2, amp=0.2 |
-		var env = EnvGen.kr(Env.perc(0, releaseTime), doneAction: 2);
+	SynthDef(\sinFmHit, { | freq = 200, modIndex = 10, cmRatio=2.31, pan=0, out=0, release=2, attack=0, amp=0.2 |
+		var env = EnvGen.kr(Env.perc(attack, release), doneAction: 2);
 		var sig;
-		modIndex = EnvGen.kr(Env.perc(0,releaseTime), 1, modIndex);
+		modIndex = EnvGen.kr(Env.perc(attack,release), 1, modIndex);
 		sig = Pan2.ar(SinOsc.ar(freq + SinOsc.ar(cmRatio * freq, 0.2, modIndex * cmRatio * freq), 0.5pi, 0.5) * env, pan);
 		sig = FreeVerb2.ar(sig[0], sig[1], 0.7);
+		Out.ar(out,
+			sig * amp
+		);
+	}).add;
+	SynthDef(\fmSynth, { | freq = 200, modIndex = 10, cmRatio=2.31, pan=0, out=0, release=2, attack=0, decay=0.3, sustain=0.8, amp=0.2 |
+		var env = EnvGen.kr(Env.adsr(attack, decay, sustain, release), doneAction: 2);
+		var sig;
+		sig = Pan2.ar(SinOsc.ar(freq + SinOsc.ar(cmRatio * freq, 0.2, modIndex * cmRatio * freq), 0.5pi, 0.5) * env, pan);
 		Out.ar(out,
 			sig * amp
 		);
@@ -86,12 +97,12 @@ s.boot;
 		);
 
 	}).add;
-	SynthDef(\noiseFall, { | dur = 10, amp = 0.5, out=0, gate=1, release=2, direction=1 |
+	SynthDef(\noiseFall, { | dur = 10, amp = 0.5, out=0, gate=1, release=2, direction=1, startFreq=4000, endFreq=100 |
 		var env = EnvGen.kr(Env([0, 1, 1,0], [0.01, dur, release]), gate, doneAction: 2);
 		var sig = Pan2.ar(
 			BPF.ar(
 				WhiteNoise.ar(0.2),
-				EnvGen.kr(Env([4000, 4000, 100], [dur/4, 3 * dur / 4], \sine)),
+				EnvGen.kr(Env([startFreq, startFreq, endFreq], [dur/4, 3 * dur / 4], \sine)),
 				0.2
 			),
 			Line.kr(1,-1, dur) * direction
@@ -102,7 +113,7 @@ s.boot;
 			DelayN.ar(sig, delayTime, delayTime);
 		});
 
-		Out.ar(out, sig);
+		Out.ar(out, sig * env);
 	}).add;
 	SynthDef(\bouncyBass, { | out = 0, freq = 60, gate = 1, amp = 0.2, pan=0.25 |
 		var env = EnvGen.kr(Env.asr(0, 1, 0), gate, doneAction: 2);
@@ -117,11 +128,65 @@ s.boot;
 			SinOsc.ar(Rand(1, 4! 20) * freq, 0.5*pi) * amp * EnvGen.kr(Env.perc(attack, release), 1, doneAction: 2) * 0.3);
 		Out.ar(out, sig);
 	}).add;
+	NN.load(\ravePercussion, "~/Documents/rave_models/percussion.ts");
+	SynthDef(\snowPerc, { | bufnum, out=0, percAmp=0, freq=50, playbackRate=1, combAmp=0.5, gate=1, amp=0.5 |
+		var sig, insig, env;
+		// Create the envelope
+		env = EnvGen.kr(Env.asr(5, 1, 10), gate, doneAction: 2);
+		// Input signal is a looped buffer
+		insig = PlayBuf.ar(1, bufnum, BufRateScale.kr(bufnum) * playbackRate.lag(0.2), loop: 1);
+		// Put this through the neural network
+		sig = NN(\ravePercussion, \forward).ar(insig) * percAmp.lag(0.1);
+		// Through comb filter
+		sig = sig + CombC.ar(LPF.ar(sig, 600), 0.2, 1/freq, 10, combAmp.lag(0.1));
+		sig = sig + (insig * 0.5);
+		// Add compression
+		sig = Compander.ar(sig, sig, 0.5, 1, 0.3) * 1.2;
+		// Fix DC offset
+		sig = LeakDC.ar(sig);
+		sig  = sig;
+		Out.ar(out, sig * env * amp);
+	}).add;
+	SynthDef(\violinDelayIn, { | out, auxOut |
+		var sig = SoundIn.ar(0);
+		var combSig = Splay.ar(
+			CombC.ar(
+				sig, 1, Rand(0.1, 1 ! 10), 4)
+		);
+		Out.ar(out, combSig);
+		Out.ar(auxOut, sig);
+
+	}).add;
+	SynthDef(\score, { | out=0, amp=2 |
+		Out.ar(out, PlayBuf.ar(2, ~samples.violinScore, BufRateScale.kr(~samples.violinScore), 1))
+	}).add;
+};
+~createSnowPercussion = { | notenum |
+	r {
+		var synth = Synth(\snowPerc, [\bufnum, b, \freq, (notenum).midicps]);
+		'playing'.postln;
+		10.do { | i |
+			synth.set(\percAmp, 6 * (i / 10));
+			1.wait;
+		};
+		25.do { | i |
+			synth.set(\playbackRate, 0.1 + (0.9  * (25 - i) / 25));
+			synth.set(\combAmp, 0.5 + (0.2 * i / 25));
+			1.wait;
+		};
+		10.wait;
+		synth.release;
+	};
 };
 ~createSeq = {
 	~seq = (
 		0: {
 			r {
+				// Insert tapping
+				// Col Legno Battuto
+				// Maybe some harmonc trills? Flautando - ask about playing a low A with touch harmonics
+				~createSnowPercussion.(57 - 12).play;
+				30.wait;
 				~padSynths = [69, 71, 72, 74, 76].midicps.collect { | freq | Synth(\mysteriousPad, [\freq, freq, \amp, 0, \pan, rrand(-1.0, 1)]) };
 				~snowSynths = [69, 71, 72, 74, 76].midicps.collect { | freq |
 					Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \resonzAmp, 0, \freq, freq])
@@ -148,7 +213,6 @@ s.boot;
 
 					};
 				}.play;
-				10.wait;
 
 			}.play;
 		},
@@ -171,13 +235,12 @@ s.boot;
 		3: {
 			var notes = [40, 52, 62, 67, 69, 71, 74];
 			~snowSynths.collect { | s |  s.release };
-			~snowSynths.collect { | s | s.release };
 			~padSynths = notes.midicps.collect { | freq | Synth(\mysteriousPad, [\freq, freq, \amp, 0.3, \pan, rrand(-1.0, 1)]) };
 			~snowSynths = notes.midicps.collect { | freq |
 				Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \resonzAmp, 100, \freq, freq])
 			};
-			Synth(\sinFmHit, [\freq, notes[0].midicps, \cmRatio, 5, \releaseTime, 10, \amp, 0.7, \modIndex, 1.3, \pan, -1]);
-			Synth(\sinFmHit, [\freq, (notes[0] - 12).midicps, \cmRatio, 5, \releaseTime, 10, \amp, 0.3, \modIndex, 1.3, \pan, 1]);
+			Synth(\sinFmHit, [\freq, notes[0].midicps, \cmRatio, 5, \release, 10, \amp, 0.7, \modIndex, 1.3, \pan, -1]);
+			Synth(\sinFmHit, [\freq, (notes[0] - 12).midicps, \cmRatio, 5, \release, 10, \amp, 0.3, \modIndex, 1.3, \pan, 1]);
 		},
 		4: {
 			var notes = [38, 50, 62, 65, 67, 69, 72];
@@ -188,13 +251,13 @@ s.boot;
 				Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \resonzAmp, 100, \freq, freq])
 			};
 
-			Synth(\sinFmHit, [\freq, notes[0].midicps, \cmRatio, 5, \releaseTime, 10, \amp, 0.7, \modIndex, 1.3, \pan, -1]);
-			Synth(\sinFmHit, [\freq, (notes[0] - 12).midicps, \cmRatio, 5, \releaseTime, 10, \amp, 0.3, \modIndex, 1.3, \pan, 1]);
+			Synth(\sinFmHit, [\freq, notes[0].midicps, \cmRatio, 5, \release, 10, \amp, 0.7, \modIndex, 1.3, \pan, -1]);
+			Synth(\sinFmHit, [\freq, (notes[0] - 12).midicps, \cmRatio, 5, \release, 10, \amp, 0.3, \modIndex, 1.3, \pan, 1]);
 		},
 		5: {
 			var freq = 71.midicps;
 			~padSynths.last.set(\freq, freq);
-			Synth(\sinFmHit, [\freq, freq, \cmRatio, 2, \releaseTime, 10, \amp, 0.1, \modIndex, 2, \pan, 0.5]);
+			Synth(\sinFmHit, [\freq, freq, \cmRatio, 2, \release, 10, \amp, 0.1, \modIndex, 2, \pan, 0.5]);
 		},
 		6: {
 			var notes = [41, 53, 62, 65, 67, 69, 76];
@@ -268,29 +331,45 @@ s.boot;
 		},
 		// m. 23
 		14: {
-			var notes = [55, 67, 67, 71, 74, 77, 81];
-			notes.midicps.collect { | freq, i |
-				~padSynths[i].set(\freq, freq);
-				~padSynths[i].set(\tremoloRateMul, 9);
-				~padSynths[i].set(\bpfRQAdd, 8);
-				~padSynths[i].set(\amp, 0.8);
-			};
+			r {
+				var notes = [55, 67, 67, 71, 74, 77, 81];
+				notes.midicps.collect { | freq, i |
+					~padSynths[i].set(\freq, freq);
+					~padSynths[i].set(\tremoloRateMul, 9);
+					~padSynths[i].set(\bpfRQAdd, 8);
+					~padSynths[i].set(\amp, 0.8);
+				};
+				1.wait;
+				5.do { | i |
+					~padSynths.collect { | s |
+						s.set(\bpfRQAdd, (5 - i));
+						~padSynths[i].set(\tremoloRateMul, 9 * (5 - i) / 5 + 1);
+					};
+					1.wait;
+				};
+				~padSynths.collect { | s |
+					s.release;
+				};
+			}.play;
 		},
 		15: {
+			TempoClock.tempo = 54 / 60;
 			r {
-				var releaseTime = 0;
-				var commonArgs = [\amp, 0.5, \pan, rrand(-1.0, 1), \tremoloRateMul, 0.5, \bpfRQAdd, 4, \release, releaseTime, \curve, 1];
+				var release = 0;
+				var commonArgs = [\amp, 0.8, \pan, rrand(-1.0, 1), \tremoloRateMul, 0.5, \bpfRQAdd, 4, \release, release, \curve, 1, \attack, 2 / TempoClock.tempo];
 				var chords = [
 					[37, 49, 58, 61, 63, 65, 72],
 					[39, 51, 58, 60, 63, 65, 70],
 					[41, 53, 56, 60, 63, 67, 70],
 					[43, 55, 56, 60, 63, 67, 70],
 				];
+
+
 				// m. 27
 				~basses = [Synth(\bouncyBass, [\freq, chords[0][0].midicps, \amp, 0.5, \pan, 0.5]), Synth(\bouncyBass, [\freq, chords[0][0].midicps / 2, \amp, 1, \pan, 0])];
 				Synth(\noiseFall, [\direction, -1]);
 				~padSynths = chords[0].midicps.collect { | freq |
-					Synth(\sinFmHit, [\freq, freq, \cmRatio, 2, \releaseTime, 5, \amp, 0.05, \modIndex, 10, \pan, rrand(-1.0,1)]);
+					Synth(\sinFmHit, [\freq, freq, \cmRatio, 2, \release, 5, \amp, 0.05, \modIndex, 10, \pan, rrand(-1.0,1)]);
 					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
 				};
 				0.5.wait;
@@ -311,13 +390,14 @@ s.boot;
 					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
 				};
 				4.wait;
+
+
 				// m. 29.5
 				~padSynths.collect { | s | s.release };
 				~padSynths = chords[0].midicps.collect { | freq |
-					Synth(\sinFmHit, [\freq, freq, \cmRatio, 2, \releaseTime, 5, \amp, 0.05, \modIndex, 10, \pan, rrand(-1.0,1)]);
+					Synth(\sinFmHit, [\freq / 2, freq, \cmRatio, 2, \release, 5, \amp, 0.05, \modIndex, 10, \pan, rrand(-1.0,1)]);
 					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
 				};
-
 				2.wait;
 				~padSynths.collect { | s | s.release };
 				~basses = [Synth(\bouncyBass, [\freq, chords[1][0].midicps, \amp, 0.5, \pan, 0.5])];
@@ -337,29 +417,86 @@ s.boot;
 					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
 				};
 				2.wait;
+				// Change the attack time
+				commonArgs = commonArgs ++ [\attack, 1.5 / TempoClock.tempo];
 				// m. 31.5
 				~padSynths.collect { | s | s.release };
-				Synth(\bassDrum, [\freq, 30, \attack, 0.02, \release, 2])
+				Synth(\bassDrum, [\freq, 30, \attack, 0.02, \release, 2]);
+				Synth(\noiseFall, [\direction, 1, \startFreq, 1000, \endFreq, 5000, \dur, 8, \release, 0]);
+				~padSynths = chords[0].midicps.collect { | freq |
+					Synth(\sinFmHit, [\freq / 2, freq, \cmRatio, 2, \release, 5, \amp, 0.05, \modIndex, 10, \pan, rrand(-1.0,1)]);
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
+				};
+				1.5.wait;
+				~padSynths.collect { | s | s.release };
+				~padSynths = chords[1].midicps.collect { | freq |
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
+				};
+				1.5.wait;
+				~padSynths.collect { | s | s.release };
+				~padSynths = chords[2].midicps.collect { | freq |
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
+				};
+				1.5.wait;
+				~padSynths.collect { | s | s.release };
+				~padSynths = chords[3].midicps.collect { | freq |
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
+				};
+				3.5.wait;
 
+
+				// m. 33.5
+				~padSynths.collect { | s | s.release };
+				Synth(\bassDrum, [\freq, 30, \attack, 0.02, \release, 2]);
+				~padSynths = chords[0].midicps.collect { | freq |
+					Synth(\sinFmHit, [\freq / 2, freq, \cmRatio, 2, \release, 5, \amp, 0.05, \modIndex, 10, \pan, rrand(-1.0,1)]);
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
+				};
+				1.5.wait;
+				~padSynths.collect { | s | s.release };
+				~padSynths = chords[1].midicps.collect { | freq |
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
+				};
+				1.5.wait;
+				~padSynths.collect { | s | s.release };
+				~padSynths = chords[2].midicps.collect { | freq |
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs)
+				};
+				1.5.wait;
+				~padSynths.collect { | s | s.release };
+				~padSynths = chords[3].midicps.collect { | freq |
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs ++ [\release, 1])
+				};
+				2.wait;
+				~padSynths.collect { | s | s.release };
+				~padSynths = chords[3].midicps.collect { | freq |
+					Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs ++ [\release, 5, \curve, -4, \attack, 1 / TempoClock.tempo])
+				};
+				2.wait;
+				~padSynths.collect { | s | s.release };
 
 			}.play;
 		},
+		16: {
+			r {
+				~createSnowPercussion.(37).play;
+				15.wait;
+				~createSnowPercussion.(35).play;
+			}.play;
+		},
+		17: {
+			[59 - 24, 59 - 12, 57, 59, 61, 63, 20].midicps.collect { | freq | Synth(\fmSynth, [\modIndex, 0, \cmRatio, 2, \attack, 1, \release, 1, \pan, rrand (0.5, 1), \freq, freq, \amp, 0.05]) }
+		}
 	)
 };
 s.waitForBoot {
 	r {
 		~loadSynthsAndSamples.();
 		s.sync;
-		~seq = ~createSeq.();
+		~createSeq.();
 	}.play;
 }
 )
-Synth(\noiseFall)
-~createSeq.();
-~seq
+Synth(\score)
 ~seq[15].();
 ~seq[16].();
-x = Synth(\mysteriousTremolo, [\tremoloRateMul, 100])
-x.set(\tremoloRateMul, 300);
-x = [1,2]
-y = [1, ... x]
