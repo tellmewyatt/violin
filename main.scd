@@ -68,11 +68,9 @@ s.reboot;
 };
 ~loadSynthsAndSamples = {
 	~samples = (
-		snow: Buffer.readChannel(s, "snow.flac".resolveRelative, channels: [0]),
-		//violinScore: Buffer.readChannel(s, "Violin I.flac".resolveRelative),
-		//pizzes: Buffer.readChannel(s, "pizzes.flac".resolveRelative, channels: [0])
-		violin2: Buffer.readChannel(s, "violin-2.flac".resolveRelative, channels: [0]),
-		violin3: Buffer.readChannel(s, "violin-3.flac".resolveRelative, channels: [0]),
+		snow: Buffer.readChannel(s, "./audio/snow.flac".resolveRelative, channels: [0]),
+		violin2: Buffer.readChannel(s, "./audio/violin-2.flac".resolveRelative, channels: [0]),
+		violin3: Buffer.readChannel(s, "./audio/violin-3.flac".resolveRelative, channels: [0]),
 	);
 	SynthDef(\snow, { | bufnum, amp=0.05, out=0, ringDecayTime=0.1, freq=400, freqLagTime=1, bwr=1, resonzAmp = 4, resonzAmpLagTime = 4, gate=1, attack=0.1, release=5, grainDur=2, grainRate=2 |
 		var env = EnvGen.kr(Env.asr(attack, 1, release), gate, doneAction: 2);
