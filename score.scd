@@ -1,28 +1,28 @@
-~createSnowPercussion = { | notenum, pan=1 |
-	var synth;
-	var routine = r {
-		synth = Synth(\snowPerc, [\bufnum, b, \freq, (notenum).midicps, \pan, pan]);
-		'playing'.postln;
-		10.do { | i |
-			synth.set(\percAmp, 6 * (i / 10));
-			1.wait;
-		};
-		25.do { | i |
-			synth.set(\playbackRate, 0.1 + (0.9  * (25 - i) / 25));
-			synth.set(\combAmp, 0.5 + (0.2 * i / 25));
-			1.wait;
-		};
-		10.wait;
-		synth.release;
-	};
-	routine.play;
-	// Cleanup function
+~createSnowPercussion = { | notenum=40, pan=1, dur=45 |
+	var durs = [
+		10,
+		25,
+		10
+	].normalizeSum * dur;
+	var release = 5;
+	var stream = Pmono(
+		\snowPerc,
+		\bufnum, ~samples.snow,
+		\pan, pan,
+		\dur, 0.1,
+		\percAmp, Pseg([0, 6, 6, 6], durs),
+		\freq, notenum.midicps,
+		\playbackRate, Pseg([1, 1, 0.1, 0.1], durs),
+		\combAmp, Pseg([0.5, 0.5, 0.7, 0.7], durs),
+		\release, Pfunc({ release })
+	).play;
 	{
-		synth.set(\release, 1);
-		synth.release;
-		routine.stop;
+		r {
+			release = 1;
+			0.11.wait;
+			stream.stop;
+		}.play;
 	};
-
 };
 ~score = (
 	a: {
@@ -394,12 +394,12 @@
 		var cleanups = [];
 		var routine = r {
 			cleanups = cleanups.addAll([
-				~createSnowPercussion.(37),
-				~createSnowPercussion.(49, 0)
+				~createSnowPercussion.(37, 1, 10),
+				~createSnowPercussion.(49, 0, 10)
 			]);
 			cleanups.postln;
-			15.wait;
-			cleanups = cleanups.add(~createSnowPercussion.(35));
+			5.wait;
+			cleanups = cleanups.add(~createSnowPercussion.(35, 1, 15));
 		};
 		routine.play;
 		{
