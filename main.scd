@@ -13,6 +13,9 @@ s.waitForBoot {
 	r {
 		~samples = (
 			snow: Buffer.readChannel(s, "./audio/snow.flac".resolveRelative, channels: [0]),
+			score: (1..4).collect { | i |
+				Buffer.readChannel(s, ("./audio/violin-score-0" ++ i.asString ++ ".wav").resolveRelative, channels: [0])
+			},
 			violin2: Buffer.readChannel(s, "./audio/violin-2.flac".resolveRelative, channels: [0]),
 			violin3: Buffer.readChannel(s, "./audio/violin-3.flac".resolveRelative, channels: [0]),
 		);
@@ -25,3 +28,7 @@ s.waitForBoot {
 	s.meter;
 }
 )
+x = Synth(\playSample, [\bufnum, ~samples.score[0], \amp, 2])
+x = Synth(\playSample, [\bufnum, ~samples.score[1], \amp, 2])
+x = Synth(\playSample, [\bufnum, ~samples.score[2], \amp, 2])
+x = Synth(\playSample, [\bufnum, ~samples.score[3], \amp, 2])

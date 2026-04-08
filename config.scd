@@ -30,5 +30,6 @@
 		recordedViolinAmp: 1
 	),
 	memSize: 8192 * 40,
-	liveViolinAmp: 1
+	liveViolinAmp: 1,
+	demoViolin: true
 )

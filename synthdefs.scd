@@ -45,7 +45,7 @@ SynthDef(\snow, { |
 	out=0,
 	ringDecayTime=0.1,
 	freq=400,
-	freqLagTime=1,
+	freqLagTime=0.2,
 	bwr=1,
 	resonzAmp = 4,
 	resonzAmpLagTime = 4,
@@ -58,18 +58,18 @@ SynthDef(\snow, { |
 	var trigger = Impulse.kr(grainRate);
 	var sig = GrainBuf.ar(s.options.numOutputBusChannels, trigger, grainDur, bufnum, BufRateScale.kr(bufnum), TRand.ar(0, 1, trigger), 2, TRand.ar(-0.5, 0.5, trigger));
 	ringDecayTime = ringDecayTime.max(0.00001).min(5);
-	sig = Resonz.ar(sig, freq.lag(0.2), bwr) *  resonzAmp.lag(resonzAmpLagTime) + (sig * amp);
+	sig = Resonz.ar(sig, freq.lag(freqLagTime), bwr) *  resonzAmp.lag(resonzAmpLagTime) + (sig * amp);
 	sig = sig * env;
 	Out.ar(
 		out,
-		sig
+		sig.equi(EQuiParams(24.0, -11.25, 0.6, 2573.0, 0.25, 1.0, 49.0, 4.25, 2.41, 3500.0, 0.0, 1.0, 6000.0, 0.0, 1.0))
 	);
 }).add;
-SynthDef(\sinFmHit, { | freq = 200, modIndex = 10, cmRatio=2.31, pan=0, out=0, release=2, attack=0, amp=0.1, curve= -4, modIndexCurve= -4, reverbMix= 0.7  |
+SynthDef(\sinFmHit, { | freq = 200, modIndex = 10, cmRatio=2.31, pan=0, width=2, out=0, release=2, attack=0, amp=0.1, curve= -4, modIndexCurve= -4, reverbMix= 0.7  |
 	var env = EnvGen.kr(Env.perc(attack, release, curve: curve), doneAction: 2);
 	var sig;
 	modIndex = EnvGen.kr(Env.perc(attack,release, curve: modIndexCurve), 1, modIndex);
-	sig = ~panEvenly.(SinOsc.ar(freq + SinOsc.ar(cmRatio * freq, 0.2, modIndex * cmRatio * freq), 0.5pi, 0.5), pan);
+	sig = ~panEvenly.(SinOsc.ar(freq + SinOsc.ar(cmRatio * freq, 0.2, modIndex * cmRatio * freq), 0.5pi, 0.5), pan, width=2);
 	sig = FreeVerb.ar(sig, reverbMix);
 	Out.ar(out,
 		sig * amp * env
@@ -227,4 +227,14 @@ SynthDef(\playSample, { | out=0, bufnum, pan, width=2, amp=1, reverbOut, reverbA
 }).add;
 SynthDef(\reverb, { | out=0, in, room=0.5, damp=0.5, amp=1 |
 	Out.ar(out, FreeVerb.ar(In.ar(in, s.options.numOutputBusChannels), 1, room, damp, amp));
+}).add;
+SynthDef(\bassDrum, { | freq = 40, amp = 1, out=0, release=1, attack=0.05 |
+	var sig = ~panEvenly.(
+		SinOsc.ar(Rand(1, 4! 20) * freq, 0.5*pi) * amp * EnvGen.kr(Env.perc(attack, release),
+			1, doneAction: 2) * 0.3,
+		0, // pan
+		2, // width (Each signal is spread over how many channels?)
+		1 // spread // How far the signals are spread from each other
+	);
+	Out.ar(out, sig);
 }).add;
