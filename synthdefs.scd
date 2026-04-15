@@ -83,7 +83,7 @@ SynthDef(\fmSynth, { | freq = 200, modIndex = 10, cmRatio=2.31, pan=0, out=0, re
 		sig * amp
 	);
 }).add;
-SynthDef(\mysteriousPad, { | out=0, freq = 900, amp =0.05, pan=0, gate=1, freqSpreadSemitones=0.3, release=5, ampMod=1.0, ampModMul=1, bpfRQAdd = 0, attack=2 |
+SynthDef(\mysteriousPad, { | out=0, freq = 900, amp =0.05, pan=0, gate=1, freqSpreadSemitones=0.3, release=5, ampMod=1.0, ampModMul=1, bpfRQAdd = 0, attack=2, freqLag=0 |
 	var env, sig, filterEnv, diminuendoEnv;
 	ampMod = (ampMod * ampModMul).max(0).min(1);
 	env = EnvGen.kr(Env.adsr(attack, attack, 0.9, release), gate, doneAction: 2);
@@ -104,7 +104,29 @@ SynthDef(\mysteriousPad, { | out=0, freq = 900, amp =0.05, pan=0, gate=1, freqSp
 		out,
 		~panEvenly.(sig * amp * env * ampMod, pan)
 	);
-
+}).add;
+SynthDef(\m29Pad, { | out=0, freq = 900, pan=0, gate=1, freqSpreadSemitones=0.3, release=5, attack=2, freqLag=0, ampLag=4, bpfRQAddLag=4, ampBus, bpfRQAddBus |
+	var env, sig, filterEnv, diminuendoEnv;
+	var amp = In.kr(ampBus, 1);
+	var bpfRQAdd = In.kr(bpfRQAddBus, 1);
+	freq.lag(freqLag);
+	env = EnvGen.kr(Env.adsr(attack, attack, 0.9, release), gate, doneAction: 2);
+	sig = Mix.ar(20.collect { | i |
+		var lfo = SinOsc.ar(Rand(0.1, 1), 0, 1);
+		var spread = (lfo * Rand(freqSpreadSemitones.neg, freqSpreadSemitones)).midiratio;
+		Saw.ar(
+			freq * spread,
+			Rand(0.1, 1))
+	});
+	sig = BPF.ar(sig, freq, 0.2 + bpfRQAdd.lag(bpfRQAddLag));
+	sig = sig + Mix.ar(
+		SinOsc.ar([freq, freq * 2], 0, 0.1)
+	);
+	sig = FreeVerb.ar(sig, 0.8, 0.9);
+	Out.ar(
+		out,
+		~panEvenly.(sig * amp.lag(ampLag) * env, pan)
+	);
 }).add;
 SynthDef(\mysteriousTremolo, { |
 	out=0,
