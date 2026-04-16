@@ -261,3 +261,32 @@ SynthDef(\bassDrum, { | freq = 40, amp = 1, out=0, release=1, attack=0.05 |
 	);
 	Out.ar(out, sig);
 }).add;
+SynthDef(\crazyFall, { | out = 0, dur=1, amp=0.1, pan=0, spread=0.5, startFreq=20000, endFreq=1000 |
+	var openEnv = EnvGen.kr(Env.step([1,0], [dur,0]), 1);
+	var env = EnvGen.kr(Env([0,1,0], [dur/2, dur/2]), 1, doneAction: 2);
+	var sig = StandardL.ar(Line.kr(startFreq, endFreq, dur), Rand(1.0, 1.1)) * amp * openEnv * 0.5;
+	sig = PitchShift.ar(sig, 0.2, 0.25, 0.2, 0.2);
+	sig = [CombC.ar(sig, 1, 0.2, 1), CombC.ar(sig, 1, 0.3, 1)];
+	sig = Limiter.ar(sig * env, amp);
+	sig = ~panEvenly.(sig, pan, 2, spread);
+	Out.ar(out, sig);
+}).add;
+SynthDef(\superNoisy, { | out=0, dur = 20, overlap=10, grainRate=100, amp=0.8 |
+	var bufnum = ~samples.plasticCrumple;
+	var trigger =  Impulse.ar(grainRate);
+	var grainLength =  overlap / grainRate;
+	var sig = GrainBuf.ar(1, trigger, grainLength, bufnum, BufRateScale.kr(bufnum), TRand.ar(0.2, 0.4, trigger));
+	var env = EnvGen.kr(Env([0,1,1,0], [dur/3,  dur/3,dur/3], [4,-4, -4]), 1);
+	sig = 20.collect { | i |
+		var delayTime = Rand(0, 0.4);
+		DelayN.ar(sig, delayTime, delayTime);
+	};
+	sig = Splay.ar(sig);
+	sig = sig + Splay.ar(PitchShift.ar(sig, 0.2, [0.1, 0.2, 0.4, 0.6, 0.8, 1.2, 1.4, 1.6, 1.8], 0.1, 0.1).scramble);
+	sig = (sig * 2).tanh;
+	sig = LeakDC.ar(sig);
+	sig = Limiter.ar(sig, 0.99);
+	Out.ar(out,
+		~panEvenly.(sig * env * amp)
+	);
+}).add;

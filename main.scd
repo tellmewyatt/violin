@@ -20,6 +20,9 @@ s.waitForBoot {
 			},
 			violin2: Buffer.readChannel(s, "./audio/violin-2.flac".resolveRelative, channels: [0]),
 			violin3: Buffer.readChannel(s, "./audio/violin-3.flac".resolveRelative, channels: [0]),
+			paperCrumple:
+			plasticCrumple: Buffer.readChannel(s,
+				"./audio/plastic-bag-crumple.wav".resolveRelative, channels:[0])
 		);
 		"./synthdefs.scd".loadRelative;
 		s.sync;
