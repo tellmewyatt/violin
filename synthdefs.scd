@@ -241,7 +241,8 @@ SynthDef(\snowPerc, { | bufnum, out=0, percAmp=0, freq=50, playbackRate=1, combA
 	pannedSig = ~panEvenly.(sig, pan, 4, 0.5);
 	Out.ar(out, pannedSig);
 }).add;
-SynthDef(\playSample, { | out=0, bufnum, pan, width=2, amp=1, reverbOut, reverbAmp=0, reverbDelay=0 |
+SynthDef(\playSample, { | out=0, bufnum, pan, width=2, amp=1, reverbOut, reverbAmp=0, reverbDelay=0, gate=1 |
+	var env = EnvGen.kr(Env.asr(0, 1, 0.1), gate, doneAction: 2);
 	var sig = PlayBuf.ar(1, bufnum, BufRateScale.kr(bufnum), 1, doneAction: 2) * amp;
 	sig = ~panEvenly.(sig, pan, width);
 	Out.ar(reverbOut, DelayL.ar(sig, 0.5, reverbDelay, reverbAmp));

@@ -16,6 +16,9 @@
 			~padSynths.collect { | s | s.release };
 			Synth(\noiseFall);
 			~padSynths = chords[0].midicps.collect { | freq | Synth(\mysteriousTremolo, [\freq, freq, \amp, 0.25, \pan, 0, \tremoloRateMul, 1]) };
+			if(~config.demoViolin) {
+				x = Synth(\playSample, [\bufnum, ~samples.score[1], \amp, 2]);
+			}
 		},
 		// m. 16
 		{
@@ -116,6 +119,7 @@
 		{
 			~padSynths.collect  { | synth | synth.release; };
 			~snowSynths.collect  { | synth | synth.release; };
+			x.release;
 		}
 	};
 };
@@ -183,7 +187,7 @@
 			}.play;
 			10.wait;
 			if(~config.demoViolin) {
-				x = Synth(\playSample, [\bufnum, ~samples.score[0], \amp, 1]);
+				x = Synth(\playSample, [\bufnum, ~samples.score[0], \amp, 2]);
 			}
 
 		};
@@ -311,6 +315,7 @@
 		);
 		var totalDur = bellVoice.durs.sum;
 		var items = [];
+		var allRoutine;
 		~busses.m29Amp.set(0);
 		~busses.bpfRQAdd.set(0);
 		TempoClock.tempo = 54 / 60;
@@ -344,12 +349,21 @@
 				var amt = i * 0.1 / totalDur;
 				~busses.m29Amp.set(amt * 0.1);
 				~busses.bpfRQAdd.set(amt * 4);
-				amt.postln;
 				0.1.wait;
 			}
 		});
-		items.collect { | i | i.play; };
+		allRoutine = r {
+			if(~config.demoViolin) {
+				TempoClock.tempo = 60 / 60;
+				x = Synth(\playSample, [\bufnum, ~samples.score[2], \amp, 2]);
+				12.wait;
+			};
+			TempoClock.tempo = 54 / 60;
+			items.collect { | i | i.play; };
+		}.play;
 		{
+			x.release;
+			allRoutine.stop;
 			items.collect { | item | item.stop; };
 		}
 	},
@@ -554,7 +568,7 @@
 		var amp = 0.05;
 		var resonzAmp = 25;
 		var fadeOut = Env([1, 0], [6], 1).asStream;
-		TempoClock.tempo = 44/60;
+		TempoClock.tempo = 38/60;
 		routine = r {
 			// m. 38
 			~snowSynths = chords[0].midicps.collect { | freq |
@@ -569,7 +583,9 @@
 			Synth(\bassDrum, [\amp, 0.125, \freq, 30, \release, 4, \attack, 0.1]);
 			0.5.wait;
 			Synth(\bassDrum, [\amp, 0.125, \freq, 30, \release, 4, \attack, 0.1]);
-			x = Synth(\playSample, [\bufnum, ~samples.score[3], \amp, 2]);
+			if(~config.demoViolin) {
+				x = Synth(\playSample, [\bufnum, ~samples.score[3], \amp, 2]);
+			};
 			2.wait;
 			chords[1].midicps.collect { | freq, i |
 				~snowSynths[i].set(\freq, freq);
@@ -654,6 +670,7 @@
 		};
 		routine.play;
 		{
+			x.release;
 			routine.stop;
 			~snowSynths.collect { | s | s.release; };
 		}
