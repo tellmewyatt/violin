@@ -69,7 +69,7 @@ SynthDef(\sinFmHit, { | freq = 200, modIndex = 10, cmRatio=2.31, pan=0, width=2,
 	var env = EnvGen.kr(Env.perc(attack, release, curve: curve), doneAction: 2);
 	var sig;
 	modIndex = EnvGen.kr(Env.perc(attack,release, curve: modIndexCurve), 1, modIndex);
-	sig = ~panEvenly.(SinOsc.ar(freq + SinOsc.ar(cmRatio * freq, 0.2, modIndex * cmRatio * freq), 0.5pi, 0.5), pan, width=2);
+	sig = ~panEvenly.(SinOsc.ar(freq + SinOsc.ar(cmRatio * freq, 0.2, modIndex * cmRatio * freq), 0.5pi, 0.5), pan, width);
 	sig = FreeVerb.ar(sig, reverbMix);
 	Out.ar(out,
 		sig * amp * env
@@ -220,25 +220,27 @@ SynthDef(\bassDrum, { | freq = 40, amp = 1.5, out=0, release=1, attack=0.001 |
 	Out.ar(out, sig);
 }).add;
 NN.load(\ravePercussion, "./percussion.ts".resolveRelative);
-SynthDef(\snowPerc, { | bufnum, out=0, percAmp=0, freq=50, playbackRate=1, combAmp=0.5, gate=1, amp=0.25, pan= -1, release=10, attack=5 |
+SynthDef(\snowPerc, { | bufnum, out=0, percAmp=0, freqs=#[61.735412657016, 123.47082531403, 207.65234878997, 246.94165062806, 277.18263097687, 311.12698372208, 466.16376151809]
+, playbackRate=1, combAmp=0.5, gate=1, amp=0.25, pan= -1, release=10, attack=5 |
 	var sig, insig, env, pannedSig;
 	// Create the envelope
-	var soundIn = Limiter.ar(HPF.ar(SoundIn.ar(0), 100), 0.9);
 	env = EnvGen.kr(Env.asr(attack, 1, release), gate, doneAction: 2);
 	// Input signal is a looped buffer
-	insig = PlayBuf.ar(1, bufnum, BufRateScale.kr(bufnum) * playbackRate.lag(0.2), loop: 1) + soundIn;
+	insig = PlayBuf.ar(1, bufnum, BufRateScale.kr(bufnum) * playbackRate.lag(0.2), loop: 1);
 	// Put this through the neural network
-	sig = NN(\ravePercussion, \forward).ar(insig) * percAmp.lag(0.1);
-	// Through comb filter
-	sig = sig + CombC.ar(LPF.ar(sig, 600), 0.2, 1/freq, 10, combAmp.lag(0.1));
-	sig = sig + (insig * 0.5);
+	sig = NN(\ravePercussion, \forward).ar(insig)[0] * percAmp.lag(0.1);
+	sig = freqs.collect { | freq |
+		var delayedSig = DelayN.ar(sig, 5, Rand(0, 5));
+		var delayedInSig = DelayN.ar(insig, 5, Rand(0,5));
+		delayedSig + delayedInSig + CombC.ar(LPF.ar(delayedSig, 600), 0.2, 1/freq, 10, combAmp.lag(0.1));
+	};
 	// Add compression
 	sig = Compander.ar(sig, sig, 0.5, 1, 0.3) * 1.2;
 	// Fix DC offset
 	sig = LeakDC.ar(sig);
 	sig  = sig * env * amp;
 	sig = Limiter.ar(sig, 0.9);
-	pannedSig = ~panEvenly.(sig, pan, 4, 0.5);
+	pannedSig = ~panEvenly.(sig, pan);
 	Out.ar(out, pannedSig);
 }).add;
 SynthDef(\playSample, { | out=0, bufnum, pan, width=2, amp=1, reverbOut, reverbAmp=0, reverbDelay=0, gate=1 |
@@ -281,12 +283,11 @@ SynthDef(\superNoisy, { | out=0, dur = 20, overlap=10, grainRate=100, amp=0.8 |
 		var delayTime = Rand(0, 0.4);
 		DelayN.ar(sig, delayTime, delayTime);
 	};
-	sig = Splay.ar(sig);
-	sig = sig + Splay.ar(PitchShift.ar(sig, 0.2, [0.1, 0.2, 0.4, 0.6, 0.8, 1.2, 1.4, 1.6, 1.8], 0.1, 0.1).scramble);
+	sig = sig ++ PitchShift.ar(sig, 0.2, [0.1, 0.2, 0.4, 0.6, 0.8, 1.2, 1.4, 1.6, 1.8], 0.1, 0.1);
 	sig = (sig * 2).tanh;
 	sig = LeakDC.ar(sig);
 	sig = Limiter.ar(sig, 0.99);
 	Out.ar(out,
-		~panEvenly.(sig * env * amp)
+		~panEvenly.(sig.scramble * env * amp, 0, 2, 1)
 	);
 }).add;

@@ -2,6 +2,7 @@
 "./config.scd".loadRelative;
 s.options.memSize = ~config.memSize;
 s.options.numOutputBusChannels = ~config.numOutputBusChannels;
+s.options.numWireBufs = 1024;
 s.reboot;
 ~createEffects = {
 	~busses = (
@@ -20,7 +21,6 @@ s.waitForBoot {
 			},
 			violin2: Buffer.readChannel(s, "./audio/violin-2.flac".resolveRelative, channels: [0]),
 			violin3: Buffer.readChannel(s, "./audio/violin-3.flac".resolveRelative, channels: [0]),
-			paperCrumple:
 			plasticCrumple: Buffer.readChannel(s,
 				"./audio/plastic-bag-crumple.wav".resolveRelative, channels:[0])
 		);
@@ -49,6 +49,14 @@ extend at m. 36 descent
 Maybe rework 27 to have less low end
 Maybe remove last G before harmonic at 51 - I think no, keep in
 Map out proportions
+
+AT m. 47
+Think about removing bright bells at Q.
+Maybe have one more chord at m. 47 that fits with the comb filter
+Maybe have the Db chord mixed in the comb filter Bb min 9
+Start with just snow sound in back 5 speakers, slowly add
+Maybe have the percussion start laterin opening
+Cue all at m. 58
 */
 x = Synth(\playSample, [\bufnum, ~samples.score[0], \amp, 2])
 x = Synth(\playSample, [\bufnum, ~samples.score[1], \amp, 2])

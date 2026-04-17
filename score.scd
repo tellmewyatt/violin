@@ -99,6 +99,7 @@
 					~padSynths[i].set(\amp, 0.4);
 					~padSynths[i].set(\spread, 1);
 					~padSynths[i].set(\width, 4);
+					~padSynths[i].set(\release, 1.5);
 				};
 				1.wait;
 				5.do { | i |
@@ -123,7 +124,7 @@
 		}
 	};
 };
-~createSnowPercussion = { | notenum=40, pan=1, dur=45 |
+~createSnowPercussion = { | freqs, pan=1, dur=45 |
 	var durs = [
 		10,
 		25,
@@ -135,11 +136,11 @@
 		\bufnum, ~samples.snow,
 		\pan, pan,
 		\dur, 0.1,
-		\percAmp, Pseg([0, 6, 6, 6], durs),
-		\freq, notenum.midicps,
+		\percAmp, Pseg([0, 4, 4, 4], durs),
 		\playbackRate, Pseg([1, 1, 0.1, 0.1], durs),
-		\combAmp, Pseg([0.5, 0.5, 0.7, 0.7], durs),
-		\amp, 0.25,
+		\combAmp, Pseg([0, 0.7, 0.7, 0.7], durs),
+		\amp, 0.4,
+		\width, 4,
 		\release, Pfunc({ release })
 	).play;
 	{
@@ -157,8 +158,8 @@
 			// Insert tapping
 			// Col Legno Battuto
 			// Maybe some harmonc trills? Flautando - ask about playing a low A with touch harmonics
-			snowPercCleanup = ~createSnowPercussion.(57 - 12);
-			30.wait;
+			/*snowPercCleanup = ~createSnowPercussion.(57 - 12);
+			30.wait;*/
 			~padSynths = [69, 71, 72, 74, 76].midicps.collect { | freq | Synth(\mysteriousPad, [\freq, freq, \amp, 0, \pan, rrand(-1.0, 1)]) };
 			~snowSynths = [69, 71, 72, 74, 76].midicps.collect { | freq |
 				Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \resonzAmp, 0, \freq, freq])
@@ -289,7 +290,7 @@
 				durs: [8, 4, 12, 3, 2, 2, 1, 4]
 			),
 			3: ( // Lowest note, but swaps to bottom of treble clef at m. 35
-				notes: [67 + 12, 69 + 12, 67, 69, 71, 64, 64, 62, 62, 57],
+				notes: [67 + 12, 69 + 12, 67 + 12, 69 +12, 71, 64, 64, 62, 62, 57],
 				durs: [4, 4, 4, 4, 4, 4, 3, 2, 2, 1, 4]
 			),
 			4: ( // Starts on  d in m. 33. 3rd from bottom in treble chords
@@ -372,7 +373,7 @@
 		var mysteriousTremoloAmp = 1;
 		var bassSwellAmp = 0.5;
 		var phraseLength = 10 * 4;
-		var bassSwellAmpEnv = Env([0.5, 1.5], [32], -4);
+		var bassSwellAmpEnv = Env([0.5, 1.0], [32], -4);
 		var mysteriousTremoloAmpEnv = Env([0.75, 2], [32], -4);
 		var bassSwellStream;
 		var mysteriousTremoloStream;
@@ -515,13 +516,13 @@
 			~padSynths = chords[3].midicps.collect { | freq |
 				Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs.() ++ [\release, 1])
 			};
-			Synth(\sinFmHit, [\release, 2, \attack, 2 / TempoClock.tempo, \freq, (chords[3][0]-12).midicps, \amp, bassSwellAmp, \modIndex, 5, \curve,0, \cmRatio, 1, \modIndexCurve, 0, \reverbMix, 0.2, \width, 4]);
-			2.wait;
+			Synth(\sinFmHit, [\release, 5, \attack, 5 / TempoClock.tempo, \freq, (chords[3][0]-12).midicps, \amp, bassSwellAmp, \modIndex, 5, \curve,0, \cmRatio, 1, \modIndexCurve, 0, \reverbMix, 0.2, \width, 4]);
+			5.wait;
 			~padSynths.collect { | s | s.release };
 			~padSynths = chords[3].midicps.collect { | freq |
 				Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs.() ++ [\release, 5, \curve, -4, \attack, 1 / TempoClock.tempo])
 			};
-			2.wait;
+			5.wait;
 			~padSynths.collect { | s | s.release };
 
 		};
@@ -536,18 +537,17 @@
 	},
 	r: {
 		var cleanups = [];
+		var synth;
 		var routine = r {
-			cleanups = cleanups.addAll([
-				~createSnowPercussion.(37, 1, 10),
-				~createSnowPercussion.(49, 0, 10)
-			]);
-			cleanups.postln;
-			5.wait;
-			cleanups = cleanups.add(~createSnowPercussion.(35, 1, 15));
+			synth = Synth(\superNoisy, [\amp, 1.5, \dur, 30]);
+			7.wait;
+			~createSnowPercussion.(
+			[59 - 24, 59 - 12, 56, 59, 61, 63, 70].midicps, 0, 30);
 		};
 		routine.play;
 		{
 			routine.stop;
+				synth.release;
 			cleanups.collect { | cleanup | cleanup.() };
 		};
 	},

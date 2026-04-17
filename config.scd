@@ -1,5 +1,5 @@
 ~config = (
-	numOutputBusChannels: 2,
+	numOutputBusChannels: 8,
 	channelMaps: (
 		2:(
 			0: 0,
