@@ -3,6 +3,22 @@ var isFullScreen=true;
 var cleanupFunction = {};
 var doubleCueInterval = 1.5; // How many seconds before you can click a patch again
 var canPlayNext = true;
+~sortLowercaseFirst = { |list|
+    list.sort { |a, b|
+        var ca = a.asString.first;   // coerce Symbol/String → Char
+        var cb = b.asString.first;
+
+        var la = ca.isLower;
+        var lb = cb.isLower;
+
+        if(la == lb) {
+            ca < cb                 // same case → alphabetical
+        }{
+            la                      // lowercase (true) comes before uppercase (false)
+        }
+    }
+};
+
 ~currentPatch = nil;
 Window.closeAll;
 w = Window("Score", Rect(200, 200, 400, 400));
@@ -18,8 +34,8 @@ w.front;
 };
 w.view.keyDownAction = { | doc, char, mod, unicode, keycode, key |
 	unicode.postln;
-	// Letters a-z are patches
-	if((unicode >= 97) && (unicode <= 122)) {
+	// Letters a-z and A-Z are patches
+	if(((unicode >= 97) && (unicode <= 122)) || ((unicode >= 65) && (unicode <= 90))) {
 		if((cleanupFunction == nil) || (char.asSymbol != ~currentPatch)) {
 			~playPatch.(char);
 		}
@@ -47,7 +63,7 @@ w.view.keyDownAction = { | doc, char, mod, unicode, keycode, key |
 	if(unicode == 32) {
 		if(canPlayNext) {
 			if(~currentPatch != nil) {
-				var orderedSeq = ~score.keys.asArray.sort;
+				var orderedSeq = ~sortLowercaseFirst.(~score.keys.asArray);
 				var next = orderedSeq.indexOf(~currentPatch) + 1;
 				~playPatch.(orderedSeq[next]);
 			} {

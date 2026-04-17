@@ -1,3 +1,149 @@
+~getPatchAtM49 = { | i |
+	var routine;
+	var chords = [
+		[59 - 24, 59 - 12, 56, 59, 61, 63, 70],
+		[61 - 24, 61 -12, 56, 58, 61, 63, 68],
+		[63 - 24, 63 -12, 54, 58, 61, 65, 68],
+		[65 - 24, 65 -12, 54, 58, 61, 65, 68],
+		[66 - 24, 66 -12, 54, 58, 61, 65, 68]
+	];
+	var finalChords = [
+		[67 - 24, 67 -12, 65 - 12, 57, 60, 63, 67],
+		[67 - 24, 67 -12, 65 - 12, 57, 60, 63, 67] -2,
+		[67 - 24, 67 -12, 65 - 12, 57, 60, 63, 67] -4
+	];
+	var amp = 0.05;
+	var resonzAmp = 25;
+	var patches = [
+		{
+			routine = r {
+				// m. 38
+				~snowSynths = chords[0].midicps.collect { | freq |
+					Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \freq, freq, \resonzAmp, resonzAmp, \attack, 2, \release, 2, \amp, amp, \freqLagTime, 0])
+				};
+
+				Synth(\snowFall, [\amp, 1, \grainRate, 3, \dur, 4, \startFreq, 5000, \endFreq, 100]);
+				Synth(\snowFall, [\amp, 1, \grainRate, 3, \dur, 4, \endFreq, 10000, \startFreq, 100, \direction, -1]);
+				4.wait;
+				if(~config.demoViolin) {
+					x = Synth(\playSample, [\bufnum, ~samples.score[3], \amp, 2]);
+				};
+			};
+			routine.play;
+		},
+		{
+			chords[1].midicps.collect { | freq, i |
+				~snowSynths[i].set(\freq, freq);
+			};
+		},
+		{
+			routine = r {
+				chords[2].midicps.collect { | freq, i |
+					~snowSynths[i].set(\freq, freq);
+				};
+				1.5.wait;
+
+				// m. 41
+				chords[3].midicps.collect { | freq, i |
+					~snowSynths[i].set(\freq, freq);
+				};
+				0.5.wait;
+				chords[4].midicps.collect { | freq, i |
+					~snowSynths[i].set(\freq, freq);
+				};
+				0.75.wait;
+
+
+				chords[0].midicps.collect { | freq, i |
+					~snowSynths[i].set(\freq, freq);
+				};
+			};
+			routine.play;
+		},
+		{
+			chords[1].midicps.collect { | freq, i |
+				~snowSynths[i].set(\freq, freq);
+			};
+		},
+		{
+			routine = r {
+				chords[2].midicps.collect { | freq, i |
+					~snowSynths[i].set(\freq, freq);
+				};
+				1.5.wait;
+				chords[3].midicps.collect { | freq, i |
+					~snowSynths[i].set(\freq, freq);
+				};
+				0.5.wait;
+				chords[4].midicps.collect { | freq, i |
+					~snowSynths[i].set(\freq, freq);
+				};
+				0.75.wait;
+				// Final descent
+				finalChords[0].midicps.collect { | freq, i |
+					~snowSynths[i].set(\freq, freq);
+				};
+				3.5.wait;
+				~snowSynths.collect { | s | s.release; };
+			};
+			routine.play;
+		},
+		{
+			~snowSynths = finalChords[1].midicps.collect { | freq |
+				Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \freq, freq, \resonzAmp, resonzAmp, \attack, 2, \release, 2, \amp, amp, \freqLagTime, 0])
+			};
+		},
+		{
+			routine = r {
+				// m. 47
+				~snowSynths = finalChords[2].midicps.collect { | freq, i |
+					~snowSynths[i].set(\freq, freq);
+				};
+				7.wait;
+				~snowSynths.collect { | s | s.release; };
+			};
+			routine.play;
+		},
+		{
+			routine = r {
+				// m. 49
+				~snowSynths = finalChords[2].midicps.collect { | freq |
+					Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \freq, freq, \resonzAmp, resonzAmp, \attack, 2, \release, 2, \amp, amp])
+				};
+				2.wait;
+				~snowSynths.collect { | s | s.release; };
+			};
+			routine.play;
+		},
+		{
+			var fadeOut = Env([1, 0], [6], 1).asStream;
+			routine = r {
+				~snowSynths = finalChords[2].midicps.collect { | freq |
+					Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \freq, freq, \resonzAmp, resonzAmp, \attack, 2, \release, 2, \amp, amp, \freqLagTime, 0])
+				};
+				(6.2 / 0.05).do {
+					var value = fadeOut.next;
+					~snowSynths.collect { | s |
+						s.set(\amp, value * amp);
+						s.set(\resonzAmp, value * resonzAmp);
+					};
+					0.05.wait;
+				};
+				~snowSynths.collect { | s | s.release };
+			};
+			routine.play;
+		};
+	];
+	{
+		TempoClock.tempo = 38/60;
+		patches[i].();
+		{
+			x.release;
+			routine.stop;
+			~snowSynths.collect { | s | s.release; };
+		}
+	};
+};
 ~getPatchAtG = { | i |
 	var chords = [
 		[41, 53, 62, 65, 67, 69, 76],
@@ -91,6 +237,7 @@
 		},
 		// m. 23
 		{
+			TempoClock.tempo = 60/60;
 			r {
 				chords[8].midicps.collect { | freq, i |
 					~padSynths[i].set(\freq, freq);
@@ -99,7 +246,7 @@
 					~padSynths[i].set(\amp, 0.4);
 					~padSynths[i].set(\spread, 1);
 					~padSynths[i].set(\width, 4);
-					~padSynths[i].set(\release, 1.5);
+					~padSynths[i].set(\release, 2);
 				};
 				1.wait;
 				5.do { | i |
@@ -164,7 +311,7 @@
 			~snowSynths = [69, 71, 72, 74, 76].midicps.collect { | freq |
 				Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \resonzAmp, 0, \freq, freq])
 			};
-			5.wait;
+			15.wait;
 			r {
 				var snowFadeIn = Env([0, 100], [20], 1);
 				var stream = snowFadeIn.asStream;
@@ -551,128 +698,13 @@
 			cleanups.collect { | cleanup | cleanup.() };
 		};
 	},
-	s: {
-		var routine;
-		var chords = [
-			[59 - 24, 59 - 12, 56, 59, 61, 63, 70],
-			[61 - 24, 61 -12, 56, 58, 61, 63, 68],
-			[63 - 24, 63 -12, 54, 58, 61, 65, 68],
-			[65 - 24, 65 -12, 54, 58, 61, 65, 68],
-			[66 - 24, 66 -12, 54, 58, 61, 65, 68]
-		];
-		var finalChords = [
-			[67 - 24, 67 -12, 65 - 12, 57, 60, 63, 67],
-			[67 - 24, 67 -12, 65 - 12, 57, 60, 63, 67] -2,
-			[67 - 24, 67 -12, 65 - 12, 57, 60, 63, 67] -4
-		];
-		var amp = 0.05;
-		var resonzAmp = 25;
-		var fadeOut = Env([1, 0], [6], 1).asStream;
-		TempoClock.tempo = 38/60;
-		routine = r {
-			// m. 38
-			~snowSynths = chords[0].midicps.collect { | freq |
-				Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \freq, freq, \resonzAmp, resonzAmp, \attack, 2, \release, 2, \amp, amp, \freqLagTime, 0])
-			};
-
-			Synth(\snowFall, [\amp, 1, \grainRate, 3, \dur, 4, \startFreq, 5000, \endFreq, 100]);
-			Synth(\snowFall, [\amp, 1, \grainRate, 3, \dur, 4, \endFreq, 10000, \startFreq, 100, \direction, -1]);
-			2.5.wait;
-			Synth(\bassDrum, [\amp, 0.125, \freq, 30, \release, 4, \attack, 0.1]);
-			1.wait;
-			Synth(\bassDrum, [\amp, 0.125, \freq, 30, \release, 4, \attack, 0.1]);
-			0.5.wait;
-			Synth(\bassDrum, [\amp, 0.125, \freq, 30, \release, 4, \attack, 0.1]);
-			if(~config.demoViolin) {
-				x = Synth(\playSample, [\bufnum, ~samples.score[3], \amp, 2]);
-			};
-			2.wait;
-			chords[1].midicps.collect { | freq, i |
-				~snowSynths[i].set(\freq, freq);
-			};
-			4.5.wait;
-			chords[2].midicps.collect { | freq, i |
-				~snowSynths[i].set(\freq, freq);
-			};
-			1.5.wait;
-
-			// m. 41
-			chords[3].midicps.collect { | freq, i |
-				~snowSynths[i].set(\freq, freq);
-			};
-			0.5.wait;
-			chords[4].midicps.collect { | freq, i |
-				~snowSynths[i].set(\freq, freq);
-			};
-			0.75.wait;
-
-
-			chords[0].midicps.collect { | freq, i |
-				~snowSynths[i].set(\freq, freq);
-			};
-			6.wait;
-			chords[1].midicps.collect { | freq, i |
-				~snowSynths[i].set(\freq, freq);
-			};
-			4.5.wait;
-			chords[2].midicps.collect { | freq, i |
-				~snowSynths[i].set(\freq, freq);
-			};
-			1.5.wait;
-			chords[3].midicps.collect { | freq, i |
-				~snowSynths[i].set(\freq, freq);
-			};
-			0.5.wait;
-			chords[4].midicps.collect { | freq, i |
-				~snowSynths[i].set(\freq, freq);
-			};
-			0.75.wait;
-
-			// Final descent
-			finalChords[0].midicps.collect { | freq, i |
-				~snowSynths[i].set(\freq, freq);
-			};
-			3.5.wait;
-			~snowSynths.collect { | s | s.release; };
-			1.wait;
-			~snowSynths = finalChords[1].midicps.collect { | freq |
-				Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \freq, freq, \resonzAmp, resonzAmp, \attack, 2, \release, 2, \amp, amp, \freqLagTime, 0])
-			};
-			5.wait;
-
-			// m. 47
-			~snowSynths = finalChords[2].midicps.collect { | freq, i |
-				~snowSynths[i].set(\freq, freq);
-			};
-			7.wait;
-			~snowSynths.collect { | s | s.release; };
-			1.wait;
-
-			// m. 49
-			~snowSynths = finalChords[2].midicps.collect { | freq |
-				Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \freq, freq, \resonzAmp, resonzAmp, \attack, 2, \release, 2, \amp, amp])
-			};
-			2.wait;
-			~snowSynths.collect { | s | s.release; };
-			2.wait;
-			~snowSynths = finalChords[2].midicps.collect { | freq |
-				Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \freq, freq, \resonzAmp, resonzAmp, \attack, 2, \release, 2, \amp, amp, \freqLagTime, 0])
-			};
-			(6.2 / 0.05).do {
-				var value = fadeOut.next;
-				~snowSynths.collect { | s |
-					s.set(\amp, value * amp);
-					s.set(\resonzAmp, value * resonzAmp);
-				};
-				0.05.wait;
-			};
-			~snowSynths.collect { | s | s.release };
-		};
-		routine.play;
-		{
-			x.release;
-			routine.stop;
-			~snowSynths.collect { | s | s.release; };
-		}
-	}
+	s: ~getPatchAtM49.(0),
+	t: ~getPatchAtM49.(1),
+	u: ~getPatchAtM49.(2),
+	v: ~getPatchAtM49.(3),
+	w: ~getPatchAtM49.(4),
+	x: ~getPatchAtM49.(5),
+	y: ~getPatchAtM49.(6),
+	z: ~getPatchAtM49.(7),
+	A: ~getPatchAtM49.(8)
 )
