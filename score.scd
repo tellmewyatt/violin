@@ -459,7 +459,7 @@
 		);
 		var bellVoice = (
 			notes: [\r, 69, 67, 66, 64, 62, 61] - 24,
-			durs: [32, 4/5,4/5,4/5,4/5,4/5, 2]
+			durs: [32, 4/5,4/5,4/5,4/5,4/5, 2],
 		);
 		var totalDur = bellVoice.durs.sum;
 		var items = [];
@@ -473,7 +473,7 @@
 			\dur, Pseq(bellVoice.durs),
 			\cmRatio, 5,
 			\release, 4,
-			\amp, 0.5,
+			\amp, Pseq([0.25, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]),
 			\modIndex, 1.3
 		));
 		voices.collect { | v |
@@ -495,7 +495,7 @@
 		items = items.add(r {
 			(totalDur / 0.1).do { | i |
 				var amt = i * 0.1 / totalDur;
-				~busses.m29Amp.set(amt * 0.1);
+				~busses.m29Amp.set(amt * 0.075);
 				~busses.bpfRQAdd.set(amt * 4);
 				0.1.wait;
 			}
@@ -520,8 +520,8 @@
 		var mysteriousTremoloAmp = 1;
 		var bassSwellAmp = 0.5;
 		var phraseLength = 10 * 4;
-		var bassSwellAmpEnv = Env([0.5, 1.0], [32], -4);
-		var mysteriousTremoloAmpEnv = Env([0.75, 2], [32], -4);
+		var bassSwellAmpEnv = Env([1/3, 2/3], [32], -4);
+		var mysteriousTremoloAmpEnv = Env([0.5, 1], [32], -4);
 		var bassSwellStream;
 		var mysteriousTremoloStream;
 		TempoClock.tempo = 54 / 60;
@@ -604,7 +604,7 @@
 			Synth(\sinFmHit, [\release, 0.1, \attack, 2 / TempoClock.tempo, \freq, (chords[3][0]-12).midicps, \amp, bassSwellAmp, \modIndex, 5, \curve,4, \cmRatio, 1, \modIndexCurve, 4, \reverbMix, 0.2, \width, 4]);
 			2.wait;
 			// Change the attack time
-			commonArgs = { [\amp, 1, \pan, rrand(-1.0, 1), \tremoloRateMul, 0.5, \bpfRQAdd, 4, \release, release, \curve, 1, \attack, 1.5 / TempoClock.tempo] };
+			commonArgs = { [\amp, mysteriousTremoloAmp, \pan, rrand(-1.0, 1), \tremoloRateMul, 0.5, \bpfRQAdd, 4, \release, release, \curve, 1, \attack, 1.5 / TempoClock.tempo] };
 
 
 			// m. 31.5

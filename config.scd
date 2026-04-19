@@ -31,5 +31,5 @@
 	),
 	memSize: 8192 * 40,
 	liveViolinAmp: 1,
-	demoViolin: true
+	demoViolin: false
 )
