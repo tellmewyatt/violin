@@ -57,6 +57,8 @@ Maybe have the Db chord mixed in the comb filter Bb min 9
 Start with just snow sound in back 5 speakers, slowly add
 Maybe have the percussion start laterin opening
 Cue all at m. 58
+m.  29 change harmonic to sounding pitch with harmonic
+Make g into one cue
 */
 x = Synth(\playSample, [\bufnum, ~samples.score[0], \amp, 2])
 x = Synth(\playSample, [\bufnum, ~samples.score[1], \amp, 2])

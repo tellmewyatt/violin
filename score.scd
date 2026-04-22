@@ -416,15 +416,35 @@
 			~snowSynths.collect  { | synth | synth.release; };
 		}
 	},
-	g: ~getPatchAtG.(0),
-	h: ~getPatchAtG.(1),
-	i: ~getPatchAtG.(2),
-	j: ~getPatchAtG.(3),
-	k: ~getPatchAtG.(4),
-	l: ~getPatchAtG.(5),
-	m: ~getPatchAtG.(6),
-	n: ~getPatchAtG.(7),
-	o: ~getPatchAtG.(8),
+	g: {
+		var routine, release;
+		TempoClock.tempo = 1;
+		routine = r {
+			release = ~getPatchAtG.(0).();
+			4.wait;
+			release = ~getPatchAtG.(1).();
+			4.wait;
+			release = ~getPatchAtG.(2).();
+			4.wait;
+			release = ~getPatchAtG.(3).();
+			4.wait;
+			release = ~getPatchAtG.(4).();
+			4.wait;
+			release = ~getPatchAtG.(5).();
+			4.wait;
+			release = ~getPatchAtG.(6).();
+			4.wait;
+			release = ~getPatchAtG.(7).();
+			8.wait;
+			release = ~getPatchAtG.(8).();
+			6.wait;
+			release.();
+		};
+		routine.play;
+		{
+			routine.stop;
+		};
+	},
 	p: {
 		var voices = (
 			1: (
@@ -544,7 +564,7 @@
 				[43, 55, 56, 60, 63, 67, 70],
 			];
 			// m. 27
-			~basses = [Synth(\bouncyBass, [\freq, chords[0][0].midicps, \amp, 0.25, \pan, 0.5]), Synth(\bouncyBass, [\freq, chords[0][0].midicps / 2, \amp, 0.25, \pan, 0])];
+			~basses = [Synth(\bouncyBass, [\freq, chords[0][0].midicps, \amp, 0.15, \pan, 0.5]), Synth(\bouncyBass, [\freq, chords[0][0].midicps / 2, \amp, 0.15, \pan, 0])];
 			Synth(\noiseFall, [\direction, -1]);
 			~padSynths = chords[0].midicps.collect { | freq |
 				Synth(\sinFmHit, [\freq, freq, \cmRatio, 2, \release, 5, \amp, 0.05, \modIndex, 10, \pan, rrand(-1.0,1)]);
