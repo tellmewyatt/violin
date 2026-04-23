@@ -115,11 +115,13 @@
 			~snowSynths.collect { | s | s.release; };
 		},
 		{
-			var fadeOut = Env([1, 0], [6], 1).asStream;
+			~snowSynths = finalChords[2].midicps.collect { | freq |
+				Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \freq, freq, \resonzAmp, resonzAmp, \attack, 2, \release, 2, \amp, amp, \freqLagTime, 0])
+			};
+		},
+		{
+			var fadeOut = Env([1, 0], [4], 1).asStream;
 			routine = r {
-				~snowSynths = finalChords[2].midicps.collect { | freq |
-					Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \freq, freq, \resonzAmp, resonzAmp, \attack, 2, \release, 2, \amp, amp, \freqLagTime, 0])
-				};
 				(6.2 / 0.05).do {
 					var value = fadeOut.next;
 					~snowSynths.collect { | s |
@@ -131,7 +133,7 @@
 				~snowSynths.collect { | s | s.release };
 			};
 			routine.play;
-		};
+		}
 	];
 	{
 		TempoClock.tempo = 38/60;
@@ -711,9 +713,18 @@
 				synth.release;
 			cleanups.collect { | cleanup | cleanup.() };
 		};
-	}
-) ++ IdentityDictionary.newFrom((0..11).collect { | i |
-
-	[("j".ascii + i).asAscii, ~getPatchAtM49.(i)]
-
-})
+	},
+	j: ~getPatchAtM49.(0),
+	k: ~getPatchAtM49.(1),
+	l: ~getPatchAtM49.(2),
+	m: ~getPatchAtM49.(3),
+	n: ~getPatchAtM49.(4),
+	o: ~getPatchAtM49.(5),
+	p: ~getPatchAtM49.(6),
+	q: ~getPatchAtM49.(7),
+	r: ~getPatchAtM49.(8),
+	s: ~getPatchAtM49.(9),
+	t: ~getPatchAtM49.(10),
+	u: ~getPatchAtM49.(11),
+	v: ~getPatchAtM49.(12)
+)

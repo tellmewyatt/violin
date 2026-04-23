@@ -31,5 +31,6 @@
 	),
 	memSize: 8192 * 40,
 	liveViolinAmp: 1,
-	demoViolin: false
+	demoViolin: false,
+	doubleCueInterval: 0.2,
 )

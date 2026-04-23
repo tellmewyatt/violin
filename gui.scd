@@ -1,7 +1,7 @@
 var label;
 var isFullScreen=true;
 var cleanupFunction = {};
-var doubleCueInterval = 1.5; // How many seconds before you can click a patch again
+var doubleCueInterval = ~config.doubleCueInterval; // How many seconds before you can click a patch again
 var canPlayNext = true;
 ~sortLowercaseFirst = { |list|
     list.sort { |a, b|
