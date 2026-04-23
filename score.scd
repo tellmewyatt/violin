@@ -84,9 +84,12 @@
 					~snowSynths[i].set(\freq, freq);
 				};
 				3.5.wait;
-				~snowSynths.collect { | s | s.release; };
+
 			};
 			routine.play;
+		},
+		{
+			~snowSynths.collect { | s | s.release; };
 		},
 		{
 			~snowSynths = finalChords[1].midicps.collect { | freq |
@@ -94,26 +97,22 @@
 			};
 		},
 		{
-			routine = r {
-				// m. 47
-				~snowSynths = finalChords[2].midicps.collect { | freq, i |
-					~snowSynths[i].set(\freq, freq);
-				};
-				7.wait;
-				~snowSynths.collect { | s | s.release; };
+			// m. 47
+			~snowSynths = finalChords[2].midicps.collect { | freq, i |
+				~snowSynths[i].set(\freq, freq);
 			};
-			routine.play;
 		},
 		{
-			routine = r {
-				// m. 49
-				~snowSynths = finalChords[2].midicps.collect { | freq |
-					Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \freq, freq, \resonzAmp, resonzAmp, \attack, 2, \release, 2, \amp, amp])
-				};
-				2.wait;
-				~snowSynths.collect { | s | s.release; };
+			~snowSynths.collect { | s | s.release; };
+		},
+		{
+			// m. 49
+			~snowSynths = finalChords[2].midicps.collect { | freq |
+				Synth(\snow, [\bufnum, ~samples.snow, \bwr, 0.01, \freq, freq, \resonzAmp, resonzAmp, \attack, 2, \release, 2, \amp, amp])
 			};
-			routine.play;
+		},
+		{
+			~snowSynths.collect { | s | s.release; };
 		},
 		{
 			var fadeOut = Env([1, 0], [6], 1).asStream;
@@ -408,18 +407,12 @@
 		}
 	},
 	f: {
-		var freq = 71.midicps;
-		~padSynths.last.set(\freq, freq);
-		Synth(\sinFmHit, [\freq, freq, \cmRatio, 2, \release, 10, \amp, 0.1, \modIndex, 2, \pan, 0.5]);
-		{
-			~padSynths.collect  { | synth | synth.release; };
-			~snowSynths.collect  { | synth | synth.release; };
-		}
-	},
-	g: {
 		var routine, release;
 		TempoClock.tempo = 1;
 		routine = r {
+			~padSynths.last.set(\freq, 71.midicps);
+			Synth(\sinFmHit, [\freq, 71.midicps, \cmRatio, 2, \release, 10, \amp, 0.1, \modIndex, 2, \pan, 0.5]);
+			4.wait;
 			release = ~getPatchAtG.(0).();
 			4.wait;
 			release = ~getPatchAtG.(1).();
@@ -446,7 +439,7 @@
 			routine.stop;
 		};
 	},
-	p: {
+	g: {
 		var voices = (
 			1: (
 				notes: [66, 62, 66, 64, 61, 59, 57,  54, 52, 50, 50] + 24,
@@ -536,7 +529,7 @@
 			items.collect { | item | item.stop; };
 		}
 	},
-	q: {
+	h: {
 		var routine, dynamicRoutine;
 		var mysteriousTremoloAmp = 1;
 		var bassSwellAmp = 0.5;
@@ -703,7 +696,7 @@
 			~padSynths.collect { | s | s.release };
 		}
 	},
-	r: {
+	i: {
 		var cleanups = [];
 		var synth;
 		var routine = r {
@@ -718,14 +711,9 @@
 				synth.release;
 			cleanups.collect { | cleanup | cleanup.() };
 		};
-	},
-	s: ~getPatchAtM49.(0),
-	t: ~getPatchAtM49.(1),
-	u: ~getPatchAtM49.(2),
-	v: ~getPatchAtM49.(3),
-	w: ~getPatchAtM49.(4),
-	x: ~getPatchAtM49.(5),
-	y: ~getPatchAtM49.(6),
-	z: ~getPatchAtM49.(7),
-	A: ~getPatchAtM49.(8)
-)
+	}
+) ++ IdentityDictionary.newFrom((0..11).collect { | i |
+
+	[("j".ascii + i).asAscii, ~getPatchAtM49.(i)]
+
+})
