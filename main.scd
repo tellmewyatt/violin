@@ -1,4 +1,3 @@
-(
 "./config.scd".loadRelative;
 s.options.memSize = ~config.memSize;
 s.options.numOutputBusChannels = ~config.numOutputBusChannels;
@@ -32,7 +31,6 @@ s.waitForBoot {
 	"./gui.scd".loadRelative;
 	s.meter;
 }
-)
 /* Does it need to do reverse envelope every time at q = 54?
 Is there more needed at q = 54
 Maybe one more?
@@ -60,7 +58,3 @@ Cue all at m. 58
 m.  29 change harmonic to sounding pitch with harmonic
 Make g into one cue
 */
-x = Synth(\playSample, [\bufnum, ~samples.score[0], \amp, 2])
-x = Synth(\playSample, [\bufnum, ~samples.score[1], \amp, 2])
-x = Synth(\playSample, [\bufnum, ~samples.score[2], \amp, 2])
-x = Synth(\playSample, [\bufnum, ~samples.score[3], \amp, 2])

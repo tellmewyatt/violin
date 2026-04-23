@@ -442,6 +442,7 @@
 		};
 		routine.play;
 		{
+			release.();
 			routine.stop;
 		};
 	},
