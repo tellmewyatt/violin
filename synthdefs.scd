@@ -179,8 +179,8 @@ SynthDef(\noiseFall, { | dur = 10, amp = 0.25, out=0, gate=1, release=2, directi
 		Line.kr(1,-1, dur) * direction
 	) * amp;
 	var delayTime = 0;
-	sig = sig + Mix.ar(2.collect {
-		delayTime = delayTime + Rand(0.1, 1);
+	sig = sig + Mix.ar(2.collect { | i |
+		delayTime = delayTime + 0.5 * i;
 		DelayN.ar(sig, delayTime, delayTime);
 	});
 
@@ -210,8 +210,8 @@ SynthDef(\bouncyBass, { | out = 0, freq = 60, gate = 1, amp = 0.1, pan=0.25 |
 	var env = EnvGen.kr(Env.asr(0, 1, 0), gate, doneAction: 2);
 	var bounceEnv = LPF.ar(LFPulse.ar(EnvGen.ar(Env([20, 0], [0.5]), gate)), 600);
 	var modEnv = EnvGen.kr(Env([0, 1, 0], [0.2, 0.1]), gate);
-	var sig = bounceEnv * SinOsc.ar(freq + SinOsc.ar(freq * 2, 0, modEnv * (freq * 10), freq)) * 0.2 * env;
-	Out.ar(out, ~panEvenly.(sig, pan, amp));
+	var sig = bounceEnv * SinOsc.ar(freq + SinOsc.ar(freq * 2, 0, modEnv * (freq * 10), freq)) * 0.2 * env * amp;
+	Out.ar(out, ~panEvenly.(sig, pan));
 }).add;
 SynthDef(\bassDrum, { | freq = 40, amp = 1.5, out=0, release=1, attack=0.001 |
 	var sig = SplayAz.ar(

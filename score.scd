@@ -489,7 +489,7 @@
 			\dur, Pseq(bellVoice.durs),
 			\cmRatio, 5,
 			\release, 4,
-			\amp, Pseq([0.25, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]),
+			\amp, Pseq([0.25, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7]),
 			\modIndex, 1.3
 		));
 		voices.collect { | v |
@@ -511,7 +511,7 @@
 		items = items.add(r {
 			(totalDur / 0.1).do { | i |
 				var amt = i * 0.1 / totalDur;
-				~busses.m29Amp.set(amt * 0.075);
+				~busses.m29Amp.set(amt * 0.125);
 				~busses.bpfRQAdd.set(amt * 4);
 				0.1.wait;
 			}
@@ -533,11 +533,11 @@
 	},
 	h: {
 		var routine, dynamicRoutine;
-		var mysteriousTremoloAmp = 1;
-		var bassSwellAmp = 0.5;
+		var mysteriousTremoloAmp = 1/3;
+		var bassSwellAmp = 1/4;
 		var phraseLength = 10 * 4;
-		var bassSwellAmpEnv = Env([1/3, 2/3], [32], -4);
-		var mysteriousTremoloAmpEnv = Env([0.5, 1], [32], -4);
+		var bassSwellAmpEnv = Env([1/4, 2/3], [32], -4);
+		var mysteriousTremoloAmpEnv = Env([1/3, 1], [32], -4);
 		var bassSwellStream;
 		var mysteriousTremoloStream;
 		TempoClock.tempo = 54 / 60;
@@ -560,7 +560,7 @@
 				[43, 55, 56, 60, 63, 67, 70],
 			];
 			// m. 27
-			~basses = [Synth(\bouncyBass, [\freq, chords[0][0].midicps, \amp, 0.15, \pan, 0.5]), Synth(\bouncyBass, [\freq, chords[0][0].midicps / 2, \amp, 0.15, \pan, 0])];
+			~basses = [Synth(\bouncyBass, [\freq, chords[0][0].midicps, \amp, 0.7, \pan, 0.5]), Synth(\bouncyBass, [\freq, chords[0][0].midicps / 2, \amp, 0.7, \pan, 0])];
 			Synth(\noiseFall, [\direction, -1]);
 			~padSynths = chords[0].midicps.collect { | freq |
 				Synth(\sinFmHit, [\freq, freq, \cmRatio, 2, \release, 5, \amp, 0.05, \modIndex, 10, \pan, rrand(-1.0,1)]);
@@ -599,7 +599,7 @@
 			Synth(\sinFmHit, [\release, 0.1, \attack, 2 / TempoClock.tempo, \freq, (chords[0][0]-12).midicps, \amp, bassSwellAmp, \modIndex, 5, \curve,4, \cmRatio, 1, \modIndexCurve, 4, \reverbMix, 0.2, \width, 4]);
 			2.wait;
 			~padSynths.collect { | s | s.release };
-			~basses = [Synth(\bouncyBass, [\freq, chords[1][0].midicps, \amp, 0.25, \pan, 0.5])];
+			~basses = [Synth(\bouncyBass, [\freq, chords[1][0].midicps, \amp, 0.5, \pan, 0.5])];
 			~padSynths = chords[1].midicps.collect { | freq |
 				Synth(\mysteriousTremolo, [\freq, freq] ++ commonArgs.())
 			};
